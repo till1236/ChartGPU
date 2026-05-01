@@ -249,7 +249,7 @@ export function renderYAxisLabels(ctx: YAxisLabelRenderContext): void {
   const ySpans: HTMLSpanElement[] = [];
   const yTickFormatter = yAxisConfig.tickFormatter;
   const isLog = yAxisConfig.type === "log";
-  const yTicks = generateTicks(yAxisConfig.type as AxisType, yDomainMin, yDomainMax, yTickCount, yAxisConfig.logBase);
+  const yTicks = yAxisConfig.ticks ?? generateTicks(yAxisConfig.type as AxisType, yDomainMin, yDomainMax, yTickCount, yAxisConfig.logBase);
 
   for (const v of yTicks) {
     const yClip = yScale.scale(v);

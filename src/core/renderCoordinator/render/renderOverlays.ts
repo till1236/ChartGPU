@@ -97,31 +97,55 @@ export function prepareOverlays(
   const gridLinesConfig = currentOptions.gridLines;
   
   let horizontalCount: number | number[] = 0;
-  if (gridLinesConfig.show && gridLinesConfig.horizontal.show) {
-    const primaryYAxis = currentOptions.yAxes[0];
-    if (primaryYAxis && primaryYAxis.type === "log") {
-      const plotClipRect = {
-        left: gridArea.left,
-        right: gridArea.canvasWidth - gridArea.right,
-        top: gridArea.top,
-        bottom: gridArea.canvasHeight - gridArea.bottom,
-      };
-      const primaryScale = yScales.values().next().value!;
-      const yDomainMin = finiteOrUndefined(primaryYAxis.min) ?? primaryScale.invert(plotClipRect.bottom);
-      const yDomainMax = finiteOrUndefined(primaryYAxis.max) ?? primaryScale.invert(plotClipRect.top);
-      const logBase = primaryYAxis.logBase ?? 10;
-      const yTicks = generateTicks("log", yDomainMin, yDomainMax, gridLinesConfig.horizontal.count, logBase);
-      const logBaseVal = Math.log(logBase);
-      horizontalCount = yTicks.map(v => (Math.log(v) / logBaseVal - Math.log(yDomainMin) / logBaseVal) / (Math.log(yDomainMax) / logBaseVal - Math.log(yDomainMin) / logBaseVal));
-    } else {
-      horizontalCount = gridLinesConfig.horizontal.count;
+  let verticalCount: number | number[] = 0;
+
+  if (gridLinesConfig.show) {
+    const plotClipRect = {
+      left: gridArea.left,
+      right: gridArea.canvasWidth - gridArea.right,
+      top: gridArea.top,
+      bottom: gridArea.canvasHeight - gridArea.bottom,
+    };
+
+    if (gridLinesConfig.horizontal.show) {
+      const primaryYAxis = currentOptions.yAxes[0];
+      if (primaryYAxis) {
+        if (primaryYAxis.ticks) {
+          const primaryScale = yScales.values().next().value!;
+          const yDomainMin = finiteOrUndefined(primaryYAxis.min) ?? primaryScale.invert(plotClipRect.bottom);
+          const yDomainMax = finiteOrUndefined(primaryYAxis.max) ?? primaryScale.invert(plotClipRect.top);
+          if (primaryYAxis.type === "log") {
+            const logBaseVal = Math.log(primaryYAxis.logBase ?? 10);
+            horizontalCount = primaryYAxis.ticks.map(v => (Math.log(v) / logBaseVal - Math.log(yDomainMin) / logBaseVal) / (Math.log(yDomainMax) / logBaseVal - Math.log(yDomainMin) / logBaseVal));
+          } else {
+            horizontalCount = primaryYAxis.ticks.map(v => (v - yDomainMin) / (yDomainMax - yDomainMin));
+          }
+        } else if (primaryYAxis.type === "log") {
+          const primaryScale = yScales.values().next().value!;
+          const yDomainMin = finiteOrUndefined(primaryYAxis.min) ?? primaryScale.invert(plotClipRect.bottom);
+          const yDomainMax = finiteOrUndefined(primaryYAxis.max) ?? primaryScale.invert(plotClipRect.top);
+          const logBase = primaryYAxis.logBase ?? 10;
+          const yTicks = generateTicks("log", yDomainMin, yDomainMax, gridLinesConfig.horizontal.count, logBase);
+          const logBaseVal = Math.log(logBase);
+          horizontalCount = yTicks.map(v => (Math.log(v) / logBaseVal - Math.log(yDomainMin) / logBaseVal) / (Math.log(yDomainMax) / logBaseVal - Math.log(yDomainMin) / logBaseVal));
+        } else {
+          horizontalCount = gridLinesConfig.horizontal.count;
+        }
+      } else {
+        horizontalCount = gridLinesConfig.horizontal.count;
+      }
+    }
+
+    if (gridLinesConfig.vertical.show) {
+      if (currentOptions.xAxis.ticks) {
+        const xDomainMin = finiteOrUndefined(currentOptions.xAxis.min) ?? xScale.invert(plotClipRect.left);
+        const xDomainMax = finiteOrUndefined(currentOptions.xAxis.max) ?? xScale.invert(plotClipRect.right);
+        verticalCount = currentOptions.xAxis.ticks.map(v => (v - xDomainMin) / (xDomainMax - xDomainMin));
+      } else {
+        verticalCount = gridLinesConfig.vertical.count;
+      }
     }
   }
-
-  const verticalCount =
-    gridLinesConfig.show && gridLinesConfig.vertical.show
-      ? gridLinesConfig.vertical.count
-      : 0;
 
   const hasHorizontal = Array.isArray(horizontalCount) ? horizontalCount.length > 0 : horizontalCount > 0;
   const hasVertical = Array.isArray(verticalCount) ? verticalCount.length > 0 : verticalCount > 0;
@@ -167,7 +191,7 @@ export function prepareOverlays(
       gridArea,
       currentOptions.theme.axisLineColor,
       currentOptions.theme.axisTickColor,
-      xTickCount,
+      currentOptions.xAxis.ticks ?? xTickCount,
     );
     for (const yAxisConfig of currentOptions.yAxes) {
       const axisId = yAxisConfig.id!;
@@ -181,7 +205,7 @@ export function prepareOverlays(
         gridArea,
         currentOptions.theme.axisLineColor,
         currentOptions.theme.axisTickColor,
-        (yAxisConfig as any).tickCount ?? DEFAULT_TICK_COUNT,
+        yAxisConfig.ticks ?? yAxisConfig.tickCount ?? DEFAULT_TICK_COUNT,
       );
     }
   }

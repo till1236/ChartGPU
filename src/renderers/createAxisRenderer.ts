@@ -18,7 +18,7 @@ export interface AxisRenderer {
     gridArea: GridArea,
     axisLineColor?: string,
     axisTickColor?: string,
-    tickCount?: number,
+    tickCountOverride?: number | readonly number[],
   ): void;
   render(passEncoder: GPURenderPassEncoder): void;
   dispose(): void;
@@ -115,7 +115,7 @@ const generateAxisVertices = (
   scale: LinearScale,
   orientation: "x" | "y",
   gridArea: GridArea,
-  tickCountOverride?: number,
+  tickCountOverride?: number | readonly number[],
 ): Float32Array => {
   const { left, right, top, bottom, canvasWidth, canvasHeight } = gridArea;
   // Be resilient: older call sites may omit/incorrectly pass DPR. Defaulting avoids hard crashes.
@@ -157,7 +157,8 @@ const generateAxisVertices = (
     );
   }
 
-  const tickCountRaw = tickCountOverride ?? DEFAULT_TICK_COUNT;
+  const isExplicit = Array.isArray(tickCountOverride);
+  const tickCountRaw = isExplicit ? (tickCountOverride as readonly number[]).length : (tickCountOverride as number ?? DEFAULT_TICK_COUNT);
   const tickCount = Math.max(1, Math.floor(tickCountRaw));
   if (!Number.isFinite(tickCountRaw) || tickCount < 1) {
     throw new Error(
@@ -204,8 +205,13 @@ const generateAxisVertices = (
     const y1 = y0 - tickDeltaClipY;
 
     for (let i = 0; i < tickCount; i++) {
-      const t = tickCount === 1 ? 0.5 : i / (tickCount - 1);
-      const v = domainMin + t * (domainMax - domainMin);
+      let v: number;
+      if (isExplicit) {
+        v = (tickCountOverride as readonly number[])[i]!;
+      } else {
+        const t = tickCount === 1 ? 0.5 : i / (tickCount - 1);
+        v = domainMin + t * (domainMax - domainMin);
+      }
       const x = scale.scale(v);
 
       vertices[idx++] = x;
@@ -228,8 +234,13 @@ const generateAxisVertices = (
     const x1 = isRight ? x0 + tickDeltaClipX : x0 - tickDeltaClipX;
 
     for (let i = 0; i < tickCount; i++) {
-      const t = tickCount === 1 ? 0.5 : i / (tickCount - 1);
-      const v = domainMin + t * (domainMax - domainMin);
+      let v: number;
+      if (isExplicit) {
+        v = (tickCountOverride as readonly number[])[i]!;
+      } else {
+        const t = tickCount === 1 ? 0.5 : i / (tickCount - 1);
+        v = domainMin + t * (domainMax - domainMin);
+      }
       const y = scale.scale(v);
 
       vertices[idx++] = x0;
@@ -349,7 +360,7 @@ export function createAxisRenderer(
     gridArea,
     axisLineColor,
     axisTickColor,
-    tickCount,
+    tickCountOverride,
   ) => {
     assertNotDisposed();
 
@@ -362,7 +373,7 @@ export function createAxisRenderer(
       scale,
       orientation,
       gridArea,
-      tickCount,
+      tickCountOverride,
     );
     const requiredSize = vertices.byteLength;
     const bufferSize = Math.max(4, requiredSize);

@@ -3525,9 +3525,13 @@ export function createRenderCoordinator(
     const canvasCssWidth = getCanvasCssWidth(gpuContext.canvas);
     const visibleXRangeMs = Math.abs(visibleXDomain.max - visibleXDomain.min);
 
-    let xTickCount = DEFAULT_TICK_COUNT;
+    let xTickCount = currentOptions.xAxis.tickCount ?? DEFAULT_TICK_COUNT;
     let xTickValues: readonly number[] = [];
-    if (currentOptions.xAxis.type === "time") {
+
+    if (currentOptions.xAxis.ticks) {
+      xTickValues = currentOptions.xAxis.ticks;
+      xTickCount = xTickValues.length;
+    } else if (currentOptions.xAxis.type === "time") {
       const computed = computeAdaptiveTimeXAxisTicks({
         axisMin: finiteOrNull(currentOptions.xAxis.min),
         axisMax: finiteOrNull(currentOptions.xAxis.max),
