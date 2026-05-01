@@ -43,6 +43,7 @@ export interface OverlayPrepareContext {
   yScales: Map<string, LinearScale | LogScale>;
   gridArea: GridArea;
   xTickCount: number;
+  xTickValues: readonly number[];
   hasCartesianSeries: boolean;
   effectivePointer: {
     hasPointer: boolean;
@@ -85,6 +86,7 @@ export function prepareOverlays(
     yScales,
     gridArea,
     xTickCount,
+    xTickValues,
     hasCartesianSeries,
     effectivePointer,
     interactionScales,
@@ -137,10 +139,10 @@ export function prepareOverlays(
     }
 
     if (gridLinesConfig.vertical.show) {
-      if (currentOptions.xAxis.ticks) {
+      if (xTickValues.length > 0) {
         const xDomainMin = finiteOrUndefined(currentOptions.xAxis.min) ?? xScale.invert(plotClipRect.left);
         const xDomainMax = finiteOrUndefined(currentOptions.xAxis.max) ?? xScale.invert(plotClipRect.right);
-        verticalCount = currentOptions.xAxis.ticks.map(v => (v - xDomainMin) / (xDomainMax - xDomainMin));
+        verticalCount = xTickValues.map(v => (v - xDomainMin) / (xDomainMax - xDomainMin));
       } else {
         verticalCount = gridLinesConfig.vertical.count;
       }
@@ -191,7 +193,7 @@ export function prepareOverlays(
       gridArea,
       currentOptions.theme.axisLineColor,
       currentOptions.theme.axisTickColor,
-      currentOptions.xAxis.ticks ?? xTickCount,
+      xTickValues.length > 0 ? xTickValues : xTickCount,
     );
     for (const yAxisConfig of currentOptions.yAxes) {
       const axisId = yAxisConfig.id!;
